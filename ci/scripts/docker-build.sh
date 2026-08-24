@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-IMAGE_NAME=${1:-"spring-petclinic:local"}
+IMAGE_TAG=${1:-"spring-petclinic:latest"}
 
-echo "===> Building Docker image: ${IMAGE_NAME}..."
-docker build -t "${IMAGE_NAME}" app/spring-petclinic/
+echo "===> Building Docker image: ${IMAGE_TAG}..."
+
+# Execute docker build targeting app/spring-petclinic/Dockerfile
+docker build -f app/spring-petclinic/Dockerfile -t "${IMAGE_TAG}" app/spring-petclinic
