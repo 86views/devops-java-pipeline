@@ -1,0 +1,112 @@
+networks:
+  devops-net:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  jenkins_home:
+
+services:
+  # ---------------------------------------------------------------------------
+  # Database Service: MySQL 8.0
+  # ---------------------------------------------------------------------------
+  mysql:
+    image: mysql:8.0
+    container_name: stage1-mysql
+    restart: unless-stopped
+    networks:
+      - devops-net
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: petclinic
+      MYSQL_USER: petclinic
+      MYSQL_PASSWORD: petclinicpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # Database UI: Adminer
+  # ---------------------------------------------------------------------------
+  adminer:
+    image: adminer:latest
+    container_name: stage1-adminer
+    restart: unless-stopped
+    networks:
+      - devops-net
+    ports:
+      - "8082:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=mysql
+
+  # ---------------------------------------------------------------------------
+  # Application Service: Spring PetClinic
+  # ---------------------------------------------------------------------------
+  app:
+    build:
+      context: ../app/spring-petclinic
+      dockerfile: Dockerfile
+    container_name: stage1-app
+    restart: unless-stopped
+    networks:
+      - devops-net
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: mysql
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/petclinic?useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: petclinic
+      SPRING_DATASOURCE_PASSWORD: petclinicpassword
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  # ---------------------------------------------------------------------------
+  # Reverse Proxy: Nginx
+  # ---------------------------------------------------------------------------
+  nginx:
+    build:
+      context: ../nginx
+      dockerfile: Dockerfile
+    container_name: stage1-nginx
+    restart: unless-stopped
+    networks:
+      - devops-net
+    depends_on:
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+
+  # ---------------------------------------------------------------------------
+  # CI Controller: Jenkins
+  # ---------------------------------------------------------------------------
+  jenkins:
+    build:
+      context: ../jenkins
+      dockerfile: Dockerfile
+    container_name: stage1-jenkins
+    restart: unless-stopped
+    networks:
+      - devops-net
+    user: root
+    ports:
+      - "8081:8080"
+      - "50000:50000"
+    environment:
+      JENKINS_ADMIN_PASSWORD: admin123
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock

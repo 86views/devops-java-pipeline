@@ -1,0 +1,64 @@
+pipeline {
+    agent any
+
+    environment {
+        APP_NAME   = 'spring-petclinic'
+        BUILD_TAG  = "local-${BUILD_NUMBER}"
+        COMPOSE_FILE = 'docker/docker-compose.stage1.yml'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo "===> Checking out code for build #${BUILD_NUMBER}"
+                checkout scm
+            }
+        }
+
+        stage('Build & Unit Test') {
+            steps {
+                echo "===> Running Maven Build and Tests"
+                sh './ci/scripts/build.sh'
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'app/spring-petclinic/target/surefire-reports/*.xml'
+                }
+            }
+        }
+
+        stage('Container Build') {
+            steps {
+                echo "===> Building Application Image"
+                sh "./ci/scripts/docker-build.sh ${APP_NAME}:${BUILD_TAG}"
+            }
+        }
+
+        stage('Local Deploy') {
+            steps {
+                echo "===> Deploying Stage 1 Environment"
+                sh './ci/scripts/deploy.sh'
+            }
+        }
+
+        stage('Verification') {
+            steps {
+                echo "===> Verifying Stage 1 Deployments"
+                sh '''
+                    sleep 10
+                    curl -s -f http://localhost:80/healthz || exit 1
+                    echo "Nginx reverse proxy is active and healthy!"
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Stage 1 Pipeline completed successfully!"
+        }
+        failure {
+            echo "Stage 1 Pipeline failed. Check logs above."
+        }
+    }
+}
