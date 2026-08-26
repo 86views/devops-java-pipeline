@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+
 IMAGE_TAG=${1:-"spring-petclinic:latest"}
 
 echo "===> Building Docker image: ${IMAGE_TAG}..."
 
-# Execute docker build targeting app/spring-petclinic/Dockerfile
-docker build -f app/spring-petclinic/Dockerfile -t "${IMAGE_TAG}" app/spring-petclinic
+# Build using explicit absolute pathing
+docker build -f "${ROOT_DIR}/app/spring-petclinic/Dockerfile" -t "${IMAGE_TAG}" "${ROOT_DIR}/app/spring-petclinic"
