@@ -46,7 +46,8 @@ pipeline {
                 echo "===> Verifying Stage 1 Deployments"
                 sh '''
                     sleep 10
-                    curl -s -f http://localhost:80/healthz || exit 1
+                    curl -s -f http://nginx:80/healthz || exit 1
+                    
                     echo "Nginx reverse proxy is active and healthy!"
                 '''
             }
