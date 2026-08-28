@@ -3,7 +3,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-SONAR_HOST_URL=${SONAR_HOST_URL:-"http://sonarqube:9000"}
+
+# Match your running container name: stage2-sonarqube
+SONAR_HOST_URL=${SONAR_HOST_URL:-"http://stage2-sonarqube:9000"}
 
 echo "===> Running SonarQube Static Code Analysis..."
 
