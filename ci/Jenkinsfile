@@ -6,7 +6,7 @@ pipeline {
         BUILD_TAG      = "v2.${BUILD_NUMBER}"
         COMPOSE_FILE   = 'docker/docker-compose.stage1.yml'
         SONAR_TOKEN    = credentials('SONAR_TOKEN')
-        REGISTRY_CREDS = credentials('DOCKERHUB_CREDS')
+        REGISTRY_CREDS = credentials('dockerhub-credentials')
     }
 
     stages {
