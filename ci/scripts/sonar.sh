@@ -8,8 +8,8 @@ SONAR_HOST_URL=${SONAR_HOST_URL:-"http://sonarqube:9000"}
 echo "===> Running SonarQube Static Code Analysis..."
 
 if [[ -z "${SONAR_TOKEN:-}" ]]; then
-  echo "SONAR_TOKEN is not set – skipping SonarQube analysis"
-  exit 0   # or exit 1 if analysis is mandatory
+  echo "ERROR: SONAR_TOKEN is not set — SonarQube analysis is mandatory" >&2
+  exit 1
 fi
 
 (
