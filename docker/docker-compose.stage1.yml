@@ -1,7 +1,7 @@
 networks:
   devops-net:
-    driver: bridge
-
+    external: true
+    
 volumes:
   mysql_data:
   jenkins_home:

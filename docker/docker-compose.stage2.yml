@@ -1,0 +1,35 @@
+services:
+  sonarqube:
+    image: sonarqube:community
+    container_name: stage2-sonarqube
+    restart: unless-stopped
+    networks:
+      - devops-net
+    ports:
+      - "9000:9000"
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://sonar-db:5432/sonar
+      SONAR_JDBC_USERNAME: sonar
+      SONAR_JDBC_PASSWORD: sonarpassword
+    depends_on:
+      - sonar-db
+
+  sonar-db:
+    image: postgres:15
+    container_name: stage2-sonar-db
+    restart: unless-stopped
+    networks:
+      - devops-net
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonarpassword
+      POSTGRES_DB: sonar
+    volumes:
+      - sonar_db_data:/var/lib/postgresql/data
+
+volumes:
+  sonar_db_data:
+
+networks:
+  devops-net:
+    external: true

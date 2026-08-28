@@ -1,7 +1,10 @@
-configuration-as-code
 git
 workflow-aggregator
 docker-workflow
 docker-plugin
 pipeline-stage-view
 ws-cleanup
+github
+github-branch-source
+credentials-binding
+sonarqube
