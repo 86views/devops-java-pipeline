@@ -15,7 +15,7 @@ fi
 (
   cd "${ROOT_DIR}/app/spring-petclinic"
   chmod +x mvnw
-  ./mvnw sonar:sonar \
+  ./mvnw org.sonarsource.scanner.maven:sonar-maven-plugin:5.0.0.4389:sonar \
     -Dsonar.host.url="${SONAR_HOST_URL}" \
     -Dsonar.token="${SONAR_TOKEN}" \
     -Dsonar.projectKey="spring-petclinic"
