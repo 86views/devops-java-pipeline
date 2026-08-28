@@ -27,10 +27,24 @@ pipeline {
             }
         }
 
+          stage('SonarQube Analysis') {
+            steps {
+                echo '===> Executing SonarQube Code Quality & Security Scan'
+                sh './ci/scripts/sonar.sh'
+            }
+        }
+
         stage('Container Build') {
             steps {
                 echo "===> Building Application Image"
                 sh "./ci/scripts/docker-build.sh ${APP_NAME}:${BUILD_TAG}"
+            }
+        }
+
+         stage('Trivy Security Scan') {
+            steps {
+                echo '===> Scanning Container Image for High & Critical Vulnerabilities'
+                sh "./ci/scripts/trivy-scan.sh spring-petclinic:${IMAGE_TAG}"
             }
         }
 
