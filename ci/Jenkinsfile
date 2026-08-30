@@ -8,6 +8,7 @@ pipeline {
         SONAR_TOKEN    = credentials('SONAR_TOKEN')
         REGISTRY_CREDS = credentials('dockerhub-credentials')
         SONAR_HOST_URL   = 'http://stage2-sonarqube:9000'
+        TESTCONTAINERS_RYUK_DISABLED = 'true'
     }
 
     stages {
