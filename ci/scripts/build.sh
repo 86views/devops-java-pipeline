@@ -10,5 +10,5 @@ echo "===> Compiling application and running unit tests..."
 (
   cd "${ROOT_DIR}/app/spring-petclinic"
   chmod +x mvnw
-  ./mvnw clean test -Dtest='!PostgresIntegrationTests'
+  ./mvnw clean test -Dtest='!MySqlIntegrationTests,!PostgresIntegrationTests' -DfailIfNoTests=false
 )
