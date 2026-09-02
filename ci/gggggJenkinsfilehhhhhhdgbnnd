@@ -2,9 +2,13 @@ pipeline {
     agent any
 
     environment {
-        APP_NAME   = 'spring-petclinic'
-        BUILD_TAG  = "local-${BUILD_NUMBER}"
-        COMPOSE_FILE = 'docker/docker-compose.stage1.yml'
+        APP_NAME       = 'spring-petclinic'
+        BUILD_TAG      = "v2.${BUILD_NUMBER}"
+        COMPOSE_FILE   = 'docker/docker-compose.stage1.yml'
+        SONAR_TOKEN    = credentials('SONAR_TOKEN')
+        REGISTRY_CREDS = credentials('dockerhub-credentials')
+        SONAR_HOST_URL   = 'http://stage2-sonarqube:9000'
+        TESTCONTAINERS_RYUK_DISABLED = 'true'
     }
 
     stages {
@@ -27,10 +31,34 @@ pipeline {
             }
         }
 
+        stage('SonarQube Analysis') {
+            steps {
+                echo '===> Executing SonarQube Code Quality & Security Scan'
+                sh './ci/scripts/sonar.sh'
+            }
+        }
+
         stage('Container Build') {
             steps {
                 echo "===> Building Application Image"
                 sh "./ci/scripts/docker-build.sh ${APP_NAME}:${BUILD_TAG}"
+            }
+        }
+
+        stage('Trivy Security Scan') {
+            steps {
+                echo '===> Scanning Container Image for High & Critical Vulnerabilities'
+                sh "./ci/scripts/trivy-scan.sh ${APP_NAME}:${BUILD_TAG}"
+            }
+        }
+
+        stage('Push to Registry') {
+            steps {
+                echo '===> Authenticating and Pushing Image to Docker Hub'
+                sh '''
+                    echo "$REGISTRY_CREDS_PSW" | docker login -u "$REGISTRY_CREDS_USR" --password-stdin
+                    DOCKERHUB_USER="$REGISTRY_CREDS_USR" ./ci/scripts/docker-push.sh ${BUILD_TAG}
+                '''
             }
         }
 
@@ -47,7 +75,7 @@ pipeline {
                 sh '''
                     sleep 10
                     curl -s -f http://nginx:80/healthz || exit 1
-                    
+
                     echo "Nginx reverse proxy is active and healthy!"
                 '''
             }
@@ -55,11 +83,14 @@ pipeline {
     }
 
     post {
+        always {
+            sh 'docker logout || true'
+        }
         success {
-            echo "Stage 1 Pipeline completed successfully!"
+            echo "Stage 2 Pipeline completed successfully!"
         }
         failure {
-            echo "Stage 1 Pipeline failed. Check logs above."
+            echo "Stage 2 Pipeline failed. Check logs above."
         }
     }
 }

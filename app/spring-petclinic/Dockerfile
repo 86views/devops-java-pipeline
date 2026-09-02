@@ -1,5 +1,6 @@
 # Stage 1: Build the Application
 FROM eclipse-temurin:17-jdk-alpine AS builder
+ARG CACHEBUST=1
 RUN apk update && apk upgrade --no-cache
 
 WORKDIR /app
@@ -17,7 +18,9 @@ RUN ./mvnw clean package -DskipTests
 
 # Stage 2: Runtime Image
 FROM eclipse-temurin:17-jre-alpine
-RUN apk update && apk upgrade --no-cache
+ARG CACHEBUST=1
+RUN apk update && apk upgrade --no-cache && \
+    apk add --no-cache "expat>=2.8.4-r0"
 
 WORKDIR /app
 

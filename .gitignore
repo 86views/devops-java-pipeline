@@ -1,0 +1,154 @@
+### ============================
+### Java / Maven (app/spring-petclinic)
+### ============================
+target/
+!.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.properties
+
+### ============================
+### Test / Coverage / Reports
+### ============================
+*.log
+*.exec
+jacoco.exec
+surefire-reports/
+failsafe-reports/
+test-output/
+coverage/
+.scannerwork/
+sonar-report/
+
+### ============================
+### Docker
+### ============================
+docker/**/*.env
+docker-compose.override.yml
+.docker/
+*.tar
+
+### ============================
+### Trivy / Security Scan Output
+### ============================
+security/reports/
+security/**/*.json
+security/**/*.sarif
+trivy-cache/
+trivy-report*
+*.trivy.json
+
+### ============================
+### Jenkins
+### ============================
+jenkins/jenkins_home/
+jenkins/**/secrets/
+jenkins/**/workspace/
+jenkins/**/*.log
+jenkins/casc/*.local.yaml
+*.jenkins-credentials
+
+### ============================
+### Registry / Credentials / Secrets
+### ============================
+registry/auth/
+**/credentials.xml
+**/*.pem
+**/*.key
+**/*.crt
+**/*.p12
+**/*credentials*.json
+**/*secrets*.yaml
+**/*secrets*.yml
+.env
+.env.*
+!.env.example
+
+### ============================
+### Terraform (infrastructure/terraform)
+### ============================
+infrastructure/terraform/**/.terraform/
+infrastructure/terraform/**/.terraform.lock.hcl
+infrastructure/terraform/**/*.tfstate
+infrastructure/terraform/**/*.tfstate.*
+infrastructure/terraform/**/*.tfvars
+!infrastructure/terraform/**/*.tfvars.example
+infrastructure/terraform/**/crash.log
+infrastructure/terraform/**/crash.*.log
+infrastructure/terraform/**/override.tf
+infrastructure/terraform/**/override.tf.json
+infrastructure/terraform/**/*_override.tf
+infrastructure/terraform/**/*_override.tf.json
+infrastructure/terraform/**/.terraformrc
+infrastructure/terraform/**/terraform.rc
+infrastructure/terraform/**/plan.out
+
+### ============================
+### AWS
+### ============================
+.aws/
+aws.json
+**/*aws-credentials*
+
+### ============================
+### Deployment / Monitoring
+### ============================
+deployment/**/*.local.yaml
+deployment/**/*.local.yml
+monitoring/**/data/
+monitoring/**/*.rdb
+
+### ============================
+### Nginx
+### ============================
+nginx/**/*.log
+nginx/**/ssl/
+
+### ============================
+### MySQL / DB data
+### ============================
+**/mysql-data/
+**/db-data/
+*.sql.bak
+
+### ============================
+### Node (if used for tooling/scripts)
+### ============================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+### ============================
+### IDE / Editor
+### ============================
+.idea/
+*.iml
+.vscode/
+*.code-workspace
+.settings/
+.classpath
+.project
+*.swp
+*.swo
+
+### ============================
+### OS Files
+### ============================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+### ============================
+### Misc
+### ============================
+*.bak
+*.tmp
+*.orig
+.cache/
