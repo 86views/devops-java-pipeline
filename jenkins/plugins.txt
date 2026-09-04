@@ -7,4 +7,4 @@ ws-cleanup
 github
 github-branch-source
 credentials-binding
-sonarqube
+sonar
