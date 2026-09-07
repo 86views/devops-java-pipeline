@@ -14,7 +14,7 @@ RUN ./mvnw dependency:go-offline -B
 
 # Copy source code and build the executable JAR
 COPY src ./src
-RUN ./mvnw clean package -DskipTests
+RUN ./mvnw clean package -DskipTests -U
 
 # Stage 2: Runtime Image
 FROM eclipse-temurin:17-jre-alpine

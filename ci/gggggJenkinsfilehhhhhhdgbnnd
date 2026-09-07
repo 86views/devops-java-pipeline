@@ -2,12 +2,12 @@ pipeline {
     agent any
 
     environment {
-        APP_NAME       = 'spring-petclinic'
-        BUILD_TAG      = "v2.${BUILD_NUMBER}"
-        COMPOSE_FILE   = 'docker/docker-compose.stage1.yml'
-        SONAR_TOKEN    = credentials('SONAR_TOKEN')
-        REGISTRY_CREDS = credentials('dockerhub-credentials')
-        SONAR_HOST_URL   = 'http://stage2-sonarqube:9000'
+        APP_NAME                     = 'spring-petclinic'
+        BUILD_TAG                    = "v2.${BUILD_NUMBER}"
+        COMPOSE_FILE                 = 'docker/docker-compose.stage1.yml'
+        SONAR_TOKEN                  = credentials('SONAR_TOKEN')
+        REGISTRY_CREDS               = credentials('dockerhub-credentials')
+        SONAR_HOST_URL               = 'http://stage2-sonarqube:9000'
         TESTCONTAINERS_RYUK_DISABLED = 'true'
     }
 
@@ -94,3 +94,17 @@ pipeline {
         }
     }
 }
+
+
+
+
+#!/usr/bin/env bash
+set -euo pipefail
+
+IMAGE_TAG=${1:-"latest"}
+REGISTRY_USER=${DOCKERHUB_USER}
+FULL_IMAGE="${REGISTRY_USER}/spring-petclinic:${IMAGE_TAG}"
+
+echo "===> Tagging and Pushing image to registry: ${FULL_IMAGE}..."
+docker tag "spring-petclinic:${IMAGE_TAG}" "${FULL_IMAGE}"
+docker push "${FULL_IMAGE}"
