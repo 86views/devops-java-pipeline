@@ -25,8 +25,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
        | tee /etc/apt/sources.list.d/trivy.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends trivy \
-    && rm -rf /var/lib/apt/lists/* 
-       
+    && rm -rf /var/lib/apt/lists/*
+
+# Install AWS CLI v2 and jq for ECR/ECS pipeline stages
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    unzip \
+    jq \
+    && curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" \
+    && unzip awscliv2.zip \
+    && ./aws/install \
+    && rm -rf awscliv2.zip aws \
+    && rm -rf /var/lib/apt/lists/*
+
 USER jenkins
 
 # Skip the initial setup wizard

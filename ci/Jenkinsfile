@@ -70,9 +70,9 @@ pipeline {
             steps {
                 echo '===> Authenticating with AWS Roles Anywhere & Pushing to ECR'
                 sh '''
-                    CREDS=$(/home/oluseun/jenkins-roles-anywhere/aws_signing_helper credential-process \
-                      --certificate /home/oluseun/jenkins-roles-anywhere/jenkins.crt \
-                      --private-key /home/oluseun/jenkins-roles-anywhere/jenkins.key \
+                    CREDS=$(/opt/jenkins-roles-anywhere/aws_signing_helper credential-process \
+                      --certificate /opt/jenkins-roles-anywhere/jenkins.crt \
+                      --private-key /opt/jenkins-roles-anywhere/jenkins.key \
                       --trust-anchor-arn "${TRUST_ANCHOR_ARN}" \
                       --profile-arn "${PROFILE_ARN}" \
                       --role-arn "${ROLE_ARN}")
@@ -88,7 +88,6 @@ pipeline {
                     echo "===> Logging into Amazon ECR"
                     aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
 
-                    # Create a local "latest" tag from the already-built version tag
                     docker tag "${APP_NAME}:${BUILD_TAG}" "${APP_NAME}:latest"
 
                     echo "===> Pushing ${APP_NAME}:${BUILD_TAG}"
@@ -104,12 +103,12 @@ pipeline {
             steps {
                 echo '===> Deploying new image to ECS Fargate'
                 sh '''
-                    CREDS=$(/home/oluseun/jenkins-roles-anywhere/aws_signing_helper credential-process \
-                      --certificate /home/oluseun/jenkins-roles-anywhere/jenkins.crt \
-                      --private-key /home/oluseun/jenkins-roles-anywhere/jenkins.key \
-                      --trust-anchor-arn "${TRUST_ANCHOR_ARN}" \
-                      --profile-arn "${PROFILE_ARN}" \
-                      --role-arn "${ROLE_ARN}")
+                    CREDS=$(/opt/jenkins-roles-anywhere/aws_signing_helper credential-process \
+                        --certificate /opt/jenkins-roles-anywhere/jenkins.crt \
+                        --private-key /opt/jenkins-roles-anywhere/jenkins.key \
+                        --trust-anchor-arn "${TRUST_ANCHOR_ARN}" \
+                        --profile-arn "${PROFILE_ARN}" \
+                        --role-arn "${ROLE_ARN}")
 
                     export AWS_ACCESS_KEY_ID=$(echo $CREDS | jq -r '.AccessKeyId')
                     export AWS_SECRET_ACCESS_KEY=$(echo $CREDS | jq -r '.SecretAccessKey')
