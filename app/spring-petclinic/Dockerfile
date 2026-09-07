@@ -10,7 +10,7 @@ COPY .mvn/ .mvn
 COPY mvnw pom.xml ./
 
 # Download dependencies offline to speed up subsequent builds
-RUN ./mvnw dependency:go-offline -B
+RUN ./mvnw dependency:go-offline -B -Dmaven.wagon.http.retryHandler.count=3
 
 # Copy source code and build the executable JAR
 COPY src ./src
