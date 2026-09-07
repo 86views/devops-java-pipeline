@@ -6,9 +6,23 @@ pipeline {
         BUILD_TAG                    = "v2.${BUILD_NUMBER}"
         COMPOSE_FILE                 = 'docker/docker-compose.stage1.yml'
         SONAR_TOKEN                  = credentials('SONAR_TOKEN')
-        REGISTRY_CREDS               = credentials('dockerhub-credentials')
         SONAR_HOST_URL               = 'http://stage2-sonarqube:9000'
         TESTCONTAINERS_RYUK_DISABLED = 'true'
+
+        // AWS ECR Settings
+        AWS_REGION                   = 'us-east-1'
+        AWS_ACCOUNT_ID                = '173331852212'
+        ECR_REGISTRY                  = "173331852212.dkr.ecr.us-east-1.amazonaws.com"
+
+        // AWS IAM Roles Anywhere
+        TRUST_ANCHOR_ARN              = 'arn:aws:rolesanywhere:us-east-1:173331852212:trust-anchor/bf896fda-9e6a-4c15-8857-2fdb6b3a016b'
+        PROFILE_ARN                   = 'arn:aws:rolesanywhere:us-east-1:173331852212:profile/2c357360-3d60-46ef-ad62-0628841bbd7a'
+        ROLE_ARN                      = 'arn:aws:iam::173331852212:role/JenkinsLocalRolesAnywhereRole'
+
+        // ECS / ALB
+        ECS_CLUSTER                   = 'devops-java-pipeline-dev-cluster'
+        ECS_SERVICE                   = 'devops-java-pipeline-dev-service'
+        ALB_DNS                       = 'devops-java-pipeline-dev-alb-76582609.us-east-1.elb.amazonaws.com'
     }
 
     stages {
@@ -52,31 +66,81 @@ pipeline {
             }
         }
 
-        stage('Push to Registry') {
+        stage('Push to AWS ECR') {
             steps {
-                echo '===> Authenticating and Pushing Image to Docker Hub'
+                echo '===> Authenticating with AWS Roles Anywhere & Pushing to ECR'
                 sh '''
-                    echo "$REGISTRY_CREDS_PSW" | docker login -u "$REGISTRY_CREDS_USR" --password-stdin
-                    DOCKERHUB_USER="$REGISTRY_CREDS_USR" ./ci/scripts/docker-push.sh ${BUILD_TAG}
+                    CREDS=$(/home/oluseun/jenkins-roles-anywhere/aws_signing_helper credential-process \
+                      --certificate /home/oluseun/jenkins-roles-anywhere/jenkins.crt \
+                      --private-key /home/oluseun/jenkins-roles-anywhere/jenkins.key \
+                      --trust-anchor-arn "${TRUST_ANCHOR_ARN}" \
+                      --profile-arn "${PROFILE_ARN}" \
+                      --role-arn "${ROLE_ARN}")
+
+                    export AWS_ACCESS_KEY_ID=$(echo $CREDS | jq -r '.AccessKeyId')
+                    export AWS_SECRET_ACCESS_KEY=$(echo $CREDS | jq -r '.SecretAccessKey')
+                    export AWS_SESSION_TOKEN=$(echo $CREDS | jq -r '.SessionToken')
+                    export AWS_DEFAULT_REGION=${AWS_REGION}
+
+                    echo "===> Verifying AWS identity"
+                    aws sts get-caller-identity
+
+                    echo "===> Logging into Amazon ECR"
+                    aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+
+                    # Create a local "latest" tag from the already-built version tag
+                    docker tag "${APP_NAME}:${BUILD_TAG}" "${APP_NAME}:latest"
+
+                    echo "===> Pushing ${APP_NAME}:${BUILD_TAG}"
+                    ./ci/scripts/docker-push.sh "${BUILD_TAG}" "${APP_NAME}"
+
+                    echo "===> Pushing ${APP_NAME}:latest"
+                    ./ci/scripts/docker-push.sh "latest" "${APP_NAME}"
                 '''
             }
         }
 
-        stage('Local Deploy') {
+        stage('Deploy to ECS') {
             steps {
-                echo "===> Deploying Stage 1 Environment"
-                sh './ci/scripts/deploy.sh'
+                echo '===> Deploying new image to ECS Fargate'
+                sh '''
+                    CREDS=$(/home/oluseun/jenkins-roles-anywhere/aws_signing_helper credential-process \
+                      --certificate /home/oluseun/jenkins-roles-anywhere/jenkins.crt \
+                      --private-key /home/oluseun/jenkins-roles-anywhere/jenkins.key \
+                      --trust-anchor-arn "${TRUST_ANCHOR_ARN}" \
+                      --profile-arn "${PROFILE_ARN}" \
+                      --role-arn "${ROLE_ARN}")
+
+                    export AWS_ACCESS_KEY_ID=$(echo $CREDS | jq -r '.AccessKeyId')
+                    export AWS_SECRET_ACCESS_KEY=$(echo $CREDS | jq -r '.SecretAccessKey')
+                    export AWS_SESSION_TOKEN=$(echo $CREDS | jq -r '.SessionToken')
+                    export AWS_DEFAULT_REGION=${AWS_REGION}
+
+                    echo "===> Forcing new ECS deployment"
+                    aws ecs update-service \
+                      --cluster ${ECS_CLUSTER} \
+                      --service ${ECS_SERVICE} \
+                      --force-new-deployment \
+                      --region ${AWS_REGION}
+
+                    echo "===> Waiting for ECS service to reach steady state (this can take a few minutes)..."
+                    aws ecs wait services-stable \
+                      --cluster ${ECS_CLUSTER} \
+                      --services ${ECS_SERVICE} \
+                      --region ${AWS_REGION}
+
+                    echo "===> ECS deployment stable"
+                '''
             }
         }
 
         stage('Verification') {
             steps {
-                echo "===> Verifying Stage 1 Deployments"
+                echo "===> Verifying ECS/ALB Deployment"
                 sh '''
-                    sleep 10
-                    curl -s -f http://nginx:80/healthz || exit 1
-
-                    echo "Nginx reverse proxy is active and healthy!"
+                    sleep 15
+                    curl -s -f http://${ALB_DNS}/actuator/health || exit 1
+                    echo "Application is live and healthy on AWS!"
                 '''
             }
         }
@@ -87,10 +151,10 @@ pipeline {
             sh 'docker logout || true'
         }
         success {
-            echo "Stage 2 Pipeline completed successfully!"
+            echo "Stage 3 Pipeline completed successfully! App deployed to AWS ECS."
         }
         failure {
-            echo "Stage 2 Pipeline failed. Check logs above."
+            echo "Stage 3 Pipeline failed. Check logs above."
         }
     }
 }
