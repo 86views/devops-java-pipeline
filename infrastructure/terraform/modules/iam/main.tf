@@ -122,3 +122,4 @@ resource "aws_iam_role_policy_attachment" "task_extra" {
   policy_arn = each.value
 }
 
+                                                                                                                                                              

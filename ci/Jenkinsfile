@@ -71,6 +71,7 @@ pipeline {
     steps {
         echo '===> Authenticating with AWS Roles Anywhere & Pushing to ECR'
         sh '''
+            set +x
             CREDS=$(/opt/jenkins-roles-anywhere/aws_signing_helper credential-process \
               --certificate /opt/jenkins-roles-anywhere/jenkins.crt \
               --private-key /opt/jenkins-roles-anywhere/jenkins.key \
@@ -78,10 +79,11 @@ pipeline {
               --profile-arn "${PROFILE_ARN}" \
               --role-arn "${ROLE_ARN}")
 
-            export AWS_ACCESS_KEY_ID=$(echo $CREDS | jq -r '.AccessKeyId')
-            export AWS_SECRET_ACCESS_KEY=$(echo $CREDS | jq -r '.SecretAccessKey')
-            export AWS_SESSION_TOKEN=$(echo $CREDS | jq -r '.SessionToken')
+            export AWS_ACCESS_KEY_ID=$(echo "$CREDS" | jq -r '.AccessKeyId')
+            export AWS_SECRET_ACCESS_KEY=$(echo "$CREDS" | jq -r '.SecretAccessKey')
+            export AWS_SESSION_TOKEN=$(echo "$CREDS" | jq -r '.SessionToken')
             export AWS_DEFAULT_REGION=${AWS_REGION}
+            set -x
 
             echo "===> Verifying AWS identity"
             aws sts get-caller-identity
@@ -101,40 +103,41 @@ pipeline {
     }
 }
 
-        stage('Deploy to ECS') {
-            steps {
-                echo '===> Deploying new image to ECS Fargate'
-                sh '''
-                    CREDS=$(/opt/jenkins-roles-anywhere/aws_signing_helper credential-process \
-                        --certificate /opt/jenkins-roles-anywhere/jenkins.crt \
-                        --private-key /opt/jenkins-roles-anywhere/jenkins.key \
-                        --trust-anchor-arn "${TRUST_ANCHOR_ARN}" \
-                        --profile-arn "${PROFILE_ARN}" \
-                        --role-arn "${ROLE_ARN}")
+       stage('Deploy to ECS') {
+    steps {
+        echo '===> Deploying new image to ECS Fargate'
+        sh '''
+            set +x
+            CREDS=$(/opt/jenkins-roles-anywhere/aws_signing_helper credential-process \
+                --certificate /opt/jenkins-roles-anywhere/jenkins.crt \
+                --private-key /opt/jenkins-roles-anywhere/jenkins.key \
+                --trust-anchor-arn "${TRUST_ANCHOR_ARN}" \
+                --profile-arn "${PROFILE_ARN}" \
+                --role-arn "${ROLE_ARN}")
 
-                    export AWS_ACCESS_KEY_ID=$(echo $CREDS | jq -r '.AccessKeyId')
-                    export AWS_SECRET_ACCESS_KEY=$(echo $CREDS | jq -r '.SecretAccessKey')
-                    export AWS_SESSION_TOKEN=$(echo $CREDS | jq -r '.SessionToken')
-                    export AWS_DEFAULT_REGION=${AWS_REGION}
+            export AWS_ACCESS_KEY_ID=$(echo "$CREDS" | jq -r '.AccessKeyId')
+            export AWS_SECRET_ACCESS_KEY=$(echo "$CREDS" | jq -r '.SecretAccessKey')
+            export AWS_SESSION_TOKEN=$(echo "$CREDS" | jq -r '.SessionToken')
+            export AWS_DEFAULT_REGION=${AWS_REGION}
+            set -x
 
-                    echo "===> Forcing new ECS deployment"
-                    aws ecs update-service \
-                      --cluster ${ECS_CLUSTER} \
-                      --service ${ECS_SERVICE} \
-                      --force-new-deployment \
-                      --region ${AWS_REGION}
+            echo "===> Forcing new ECS deployment"
+            aws ecs update-service \
+              --cluster ${ECS_CLUSTER} \
+              --service ${ECS_SERVICE} \
+              --force-new-deployment \
+              --region ${AWS_REGION}
 
-                    echo "===> Waiting for ECS service to reach steady state (this can take a few minutes)..."
-                    aws ecs wait services-stable \
-                      --cluster ${ECS_CLUSTER} \
-                      --services ${ECS_SERVICE} \
-                      --region ${AWS_REGION}
+            echo "===> Waiting for ECS service to reach steady state (this can take a few minutes)..."
+            aws ecs wait services-stable \
+              --cluster ${ECS_CLUSTER} \
+              --services ${ECS_SERVICE} \
+              --region ${AWS_REGION}
 
-                    echo "===> ECS deployment stable"
-                '''
-            }
-        }
-
+            echo "===> ECS deployment stable"
+        '''
+    }
+}
         stage('Verification') {
             steps {
                 echo "===> Verifying ECS/ALB Deployment"
